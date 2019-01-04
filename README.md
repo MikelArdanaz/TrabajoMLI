@@ -6,7 +6,7 @@ Una de las características importantes de las imágenes de satélite suele ser 
 
 En todos los casos, aunque tratemos con imágenes, consideraremos que la información relevante se encuentra en el espectro de cada pixel y no hay que utilizar relaciones espaciales entre pixeles. Es decir, cada pixel es una muestra.
 
-##OBJETIVOS DEL PROYECTO
+## OBJETIVOS DEL PROYECTO
 
 
 * Usar algún algoritmo de clustering sobre todos los datos sin emplear las etiquetas para obtener una primera clasificación. Definir una estrategia para clasificar nuevos ejemplos y obtener el mapa de clasificación final de toda la imagen. Obviamente, al no haber empleado las etiquetas de las clases puede que nuestro mapa de clasificación basado en clustering no tenga mucha relación con las clases predefinidas.
