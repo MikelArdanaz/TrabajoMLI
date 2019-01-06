@@ -4,9 +4,13 @@ import numpy as np
 import scipy.io.matlab as matlab
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 
 # TODO tener todos los modelos en un mismo diccionario llamado modelos con string modeloparametros y modelo
+# TODO modularizar
+# TODO testear jerarquico
+
 
 def kmeans(imagen):
     '''
@@ -16,7 +20,7 @@ def kmeans(imagen):
     modelos=[]
     predictions=[]
     for nclusters in (5,10,17):# Yl va de 0 a 16
-        kmeans = KMeans(n_clusters=nclusters, random_state=42).fit(imagen)
+        kmeans = KMeans(n_clusters=nclusters, random_state=42,n_jobs=-1).fit(imagen)# njobs=1-> Parallel processing
         modelos.append(kmeans)
         predictions.append(kmeans.predict(imagen))# Prescindible (https://stackoverflow.com/questions/25012342/scikit-learns-k-means-what-does-the-predict-method-really-do)
     return modelos, predictions
@@ -46,7 +50,8 @@ if __name__ == '__main__':
         ax.imshow(predictions[i].reshape((145, 145), order="F"))
         plt.title('K-means '+str(modelos[i].n_clusters)+' clusters') # Dims(Y)
     plt.show()
-    # 2º Aprox: Probamos ahora a hacer cluster solo de los que tienen etiqueta (al resto les mantendremos el valor de 0)
+    # 2º Aprox: Filter background
+    # Probamos ahora a hacer cluster solo de los que tienen etiqueta (al resto les mantendremos el valor de 0)
     Y_final_orig = np.zeros((Yl.shape[0], 1))
     Xl_SoloClasei = np.float64(Xl[Yl != 0, :])
     modelos1 = KMeans(n_clusters=16, random_state=42).fit(Xl_SoloClasei)
@@ -54,13 +59,22 @@ if __name__ == '__main__':
     plt.imshow(Y_final_orig.reshape((145, 145), order="F"))
     plt.title('K-means 16 clusters, solo etiquetados')
     plt.show()
-
-    # Filter background: eliminamos la clase 0 de los datos etiquetados
-    # Nc=Yl.max()-Yl.min()+1
-    # if Nc>2:
-    #     Xl = Xl[Yl != 0,:];
-    #     Yl = Yl[Yl != 0];
-
+    # 3º Aprox: Repetimos 1º y 2º Aprox. con estandarización
+    stander = StandardScaler()
+    Xl_std = stander.fit_transform(Xl)
+    imagen = np.float64(Xl_std[:, (range(0, 220))])
+    modelos, predictions = kmeans(imagen)
+    for i in range(3):
+        ax = plt.subplot(1, 3, i + 1)
+        ax.imshow(predictions[i].reshape((145, 145), order="F"))
+        plt.title('K-means std ' + str(modelos[i].n_clusters) + ' clusters')  # Dims(Y)
+    plt.show()
+    Xl_stdclase = np.float64(Xl_std[Yl != 0, :])
+    modelos1 = KMeans(n_clusters=16, random_state=42).fit(Xl_stdclase)
+    Y_final_orig[Yl != 0, 0] = modelos1.labels_ + 1  # Kmeans empieza a etiquetar en 0
+    plt.imshow(Y_final_orig.reshape((145, 145), order="F"))
+    plt.title('K-means std 16 clusters, etiquetados')
+    plt.show()
 
     # Dibujamos las imagenes
     ax=plt.subplot(1,2,1)
