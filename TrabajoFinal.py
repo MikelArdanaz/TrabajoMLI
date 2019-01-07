@@ -10,13 +10,13 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from yellowbrick.cluster import KElbowVisualizer
 
-# TODO tener todos los modelos en un mismo diccionario llamado modelos con string modeloparametros y modelo
 # TODO testear jerarquico
 
 
 def kmeans(imagen,tipo='',labeled=False):
     '''
     Realiza un clustering utilizando el algoritmo KMeans implementado en scikit-learn con 5,10 y 17 clusters.
+    Posteriormente realiza una gráfica con los resultados.
     :return: * modelos, predictions: El modelo ya entrenado y el resultado de la prediccion
     '''
     modelos=[]
@@ -39,6 +39,12 @@ def kmeans(imagen,tipo='',labeled=False):
 
 
 def pcapply(X):
+    '''
+    Realiza un PCA y muestra en una gráfica la explicación de la variabilidad respecto al nº de vars. La hemos usado
+    para elegir el número de variables que queriamos conservar.
+    :param X:Dataset
+    :return: data -  Conjunto de datos reducido
+    '''
     data=PCA(n_components=40).fit_transform(X)
     _, b,_ = np.linalg.svd(X.transpose().dot(X))# Demo mejor con 40
     plt.title('Explicación variabilidad en base al número de variables')
@@ -48,6 +54,12 @@ def pcapply(X):
 
 
 def plotmetrics(Yl,modelos):
+    '''
+    Muestra en una gráfica algunas de los medidas de bondad estudiadas
+    :param Yl: Etiquetas de clases
+    :param modelos: Diccionario con NombreModelo y clases asignadas
+    :return:
+    '''
     mutualinfo={}
     vmeasure={}
     rand={}
@@ -96,8 +108,6 @@ if __name__ == '__main__':
     mat_file ="datasetB1.mat"
     mat = matlab.loadmat(mat_file,squeeze_me=True) #devuelve un dictionary
     list(mat.keys()) #variables almacenadas
-
-
     # Lectura de los datos
     X = mat["X"]   #imagen (hipercubo 3D: filas x columnas x variables)
     Xl = mat["Xl"]   #muestras etiquetadas (muestas x variables)
@@ -152,12 +162,3 @@ if __name__ == '__main__':
     ax.imshow(X[:,:,1]), ax.axis('off'), plt.title('Image')
     ax=plt.subplot(1,2,2)
     ax.imshow(Y), ax.axis('off'), plt.title('Ground Truth')
-
-    # Dibujamos los resultados
-    clasmap = Y  # aqui deberiamos poner nuestra clasificacion
-    clasmap_masked = np.ma.masked_where(clasmap < 1, clasmap)
-    # for i in range(15):
-    # plt.imshow(X[:,:,1])
-
-    plt.imshow(clasmap_masked)
-    plt.show()
