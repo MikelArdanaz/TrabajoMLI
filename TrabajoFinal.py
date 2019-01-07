@@ -91,6 +91,7 @@ def elbow(Xl,Yl):
 
 
 if __name__ == '__main__':
+    plt.style.use('default')# Al importar yellowbrick, se cambia el esquema de colores a grayscale.
     # Lectura de la imagen de fichero de Matlab .mat
     mat_file ="datasetB1.mat"
     mat = matlab.loadmat(mat_file,squeeze_me=True) #devuelve un dictionary
