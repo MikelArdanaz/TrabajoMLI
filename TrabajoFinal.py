@@ -5,9 +5,9 @@ import scipy.io.matlab as matlab
 import matplotlib.pyplot as plt
 from sklearn import mixture
 from sklearn.cluster import KMeans
+from sklearn.metrics import v_measure_score, adjusted_rand_score, mutual_info_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn import metrics
 
 
 # TODO tener todos los modelos en un mismo diccionario llamado modelos con string modeloparametros y modelo
@@ -48,13 +48,30 @@ def pcapply(X):
 
 
 def plotmetrics(Yl,modelos):
-    plotdict={}
+    mutualinfo={}
+    vmeasure={}
+    rand={}
     for i in modelos:
-        plotdict[i]=metrics.mutual_info_score(Yl[Yl!=0], modelos[i], contingency=None)
-        plt.bar(range(len(plotdict)), plotdict.values(), align='center')
-    plt.suptitle('Información Mutua')
-    plt.xticks(range(len(plotdict)), plotdict.keys())
+        mutualinfo[i]=mutual_info_score(Yl[Yl!=0], modelos[i])
+        vmeasure[i]=v_measure_score(Yl[Yl!=0], modelos[i])
+        rand[i]=adjusted_rand_score(Yl[Yl!=0], modelos[i])
+    mutualinfo['Ground Truth']=mutual_info_score(Yl[Yl!=0],Yl[Yl!=0])
+    vmeasure['Ground Truth']=v_measure_score(Yl[Yl!=0],Yl[Yl!=0])
+    rand['Ground Truth']=adjusted_rand_score(Yl[Yl!=0],Yl[Yl!=0])
+    plt.subplot(221)
+    plt.bar(range(len(mutualinfo)), mutualinfo.values(), align='center')
+    plt.title('Información Mutua')
+    plt.xticks(range(len(mutualinfo)), mutualinfo.keys())
+    plt.subplot(222)
+    plt.bar(range(len(vmeasure)), vmeasure.values(), align='center')
+    plt.title('V Measure')
+    plt.xticks(range(len(vmeasure)), vmeasure.keys())
+    plt.subplot(223)
+    plt.bar(range(len(rand)), rand.values(), align='center')
+    plt.title('Rand')
+    plt.xticks(range(len(rand)), rand.keys())
     plt.show()
+    # TODO no se ve bien a que corresponde cada barra
 
 
 if __name__ == '__main__':
