@@ -7,6 +7,8 @@ from sklearn import mixture
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn import metrics
+
 
 # TODO tener todos los modelos en un mismo diccionario llamado modelos con string modeloparametros y modelo
 # TODO testear jerarquico
@@ -34,13 +36,27 @@ def kmeans(imagen,tipo='',labeled=False):
         plt.title(tipo+str(modelos[i].n_clusters)+' clusters') # Dims(Y)
     plt.show()
     return modelos, predictions
-def PCApply(X):
+
+
+def pcapply(X):
     data=PCA(n_components=40).fit_transform(X)
     _, b,_ = np.linalg.svd(X.transpose().dot(X))# Demo mejor con 40
     plt.title('Explicación variabilidad en base al número de variables')
     plt.plot(range(10, 75), b[10:75], 'bx-')
     plt.show()
     return data
+
+
+def plotmetrics(Yl,modelos):
+    plotdict={}
+    for i in modelos:
+        plotdict[i]=metrics.mutual_info_score(Yl[Yl!=0], modelos[i], contingency=None)
+        plt.bar(range(len(plotdict)), plotdict.values(), align='center')
+    plt.suptitle('Información Mutua')
+    plt.xticks(range(len(plotdict)), plotdict.keys())
+    plt.show()
+
+
 if __name__ == '__main__':
     # Lectura de la imagen de fichero de Matlab .mat
     mat_file ="datasetB1.mat"
@@ -53,18 +69,19 @@ if __name__ == '__main__':
     Xl = mat["Xl"]   #muestras etiquetadas (muestas x variables)
     Yl = mat["Yl"]   #etiquetas de clases (muestras x 1, 0=sin clase)
     del mat
-
+    modelos={}#Dict para almacenar los modelos etiquetados
 
     # Reshape del Ground Truth como una imagen
     Y = np.reshape(Yl, (X.shape[0], X.shape[1]),order="F")
     imagen=np.float64(Xl[:,(range(0,220))])#imagen en sus 220 dimensiones
     # 1º Aproximación: Kmeans 5,10,17 clusters
-    modelos, predictions= kmeans(imagen)
+    modelo, predictions= kmeans(imagen)
     # 2º Aprox: Filter background
     # Probamos ahora a hacer cluster solo de los que tienen etiqueta (al resto les mantendremos el valor de 0)
     Y_final_orig = np.zeros((Yl.shape[0], 1))
     Xl_SoloClasei = np.float64(Xl[Yl != 0, :])
     modelos1 = KMeans(n_clusters=16, random_state=42).fit(Xl_SoloClasei)
+    modelos['Kmeans 16 label'] = modelos1.labels_ + 1
     Y_final_orig[Yl != 0, 0] = modelos1.labels_ + 1 # Kmeans empieza a etiquetar en 0
     plt.imshow(Y_final_orig.reshape((145, 145), order="F"))
     plt.title('K-means 16 clusters, solo etiquetados')
@@ -73,16 +90,18 @@ if __name__ == '__main__':
     stander = StandardScaler()
     Xl_std = stander.fit_transform(Xl)
     imagen = np.float64(Xl_std[:, (range(0, 220))])
-    modelos, predictions = kmeans(imagen,'std')
+    modelostd, predictionstd = kmeans(imagen,'std')
     Xl_stdclase = np.float64(Xl_std[Yl != 0, :])
     modelos1 = KMeans(n_clusters=16, random_state=42).fit(Xl_stdclase)
+    modelos['Kmeans 16 std label']=modelos1.labels_ + 1
     Y_final_orig[Yl != 0, 0] = modelos1.labels_ + 1  # Kmeans empieza a etiquetar en 0
     plt.imshow(Y_final_orig.reshape((145, 145), order="F"))
     plt.title('K-means std 16 clusters, etiquetados')
     plt.show()
-    #4º Aprox: PCA
-    data=PCApply(Xl_std)
+    # 4º Aprox: PCA
+    data=pcapply(Xl_std)
     modelosPCA, predictionsPCA=kmeans(data[Yl!=0,:],'PCA + std ',labeled=True)
+    modelos['PCA'] = modelosPCA[2].labels_
     # 5º Aprox: Gaussian Mixtures
     GM = mixture.GaussianMixture(n_components=16, random_state=42).fit_predict(data[Yl!=0,:])
     Y_GM=np.zeros((Yl.shape[0], 1))
@@ -90,6 +109,8 @@ if __name__ == '__main__':
     plt.imshow(Y_GM.reshape((145, 145), order="F"))
     plt.title('Gaussian Mixtures, std + PCA 16 clusters, etiquetados')
     plt.show()
+    modelos['Gaussian Mixtures']=GM+1
+    plotmetrics(Yl,modelos)
     # Dibujamos las imagenes
     ax=plt.subplot(1,2,1)
     ax.imshow(X[:,:,1]), ax.axis('off'), plt.title('Image')
@@ -97,7 +118,7 @@ if __name__ == '__main__':
     ax.imshow(Y), ax.axis('off'), plt.title('Ground Truth')
 
     # Dibujamos los resultados
-    clasmap = Y;  # aqui deberiamos poner nuestra clasificacion
+    clasmap = Y  # aqui deberiamos poner nuestra clasificacion
     clasmap_masked = np.ma.masked_where(clasmap < 1, clasmap)
     # for i in range(15):
     # plt.imshow(X[:,:,1])
