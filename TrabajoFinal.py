@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import v_measure_score, adjusted_rand_score, mutual_info_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-
+from yellowbrick.cluster import KElbowVisualizer
 
 # TODO tener todos los modelos en un mismo diccionario llamado modelos con string modeloparametros y modelo
 # TODO testear jerarquico
@@ -74,6 +74,22 @@ def plotmetrics(Yl,modelos):
     # TODO no se ve bien a que corresponde cada barra
 
 
+def elbow(Xl,Yl):
+    '''
+    Implementación del método Elbow (https://en.wikipedia.org/wiki/Determining_the_number_of_clusters_in_a_data_set)
+    para conocer el número de clusters que debe tener cada dataset.
+    Lo usaremos posteriormente en la selección de muestras. El número de clusters se elige a ojo en función
+    de donde encontremos el codo. IMP: En algunos casos no esta bien definido el codo. (¡La vida real es asi de dura!)
+    '''
+    for clase in range(1,17):
+        indexclasified=np.where(Yl ==clase)[0]# Indexes of class
+        Xlclase=Xl[indexclasified,:]
+        model=KMeans()
+        visualizer = KElbowVisualizer(model, k=(1, 12),title=('Método Elbow para la clase ')+str(clase))
+        visualizer.fit(Xlclase)
+        visualizer.poof()
+
+
 if __name__ == '__main__':
     # Lectura de la imagen de fichero de Matlab .mat
     mat_file ="datasetB1.mat"
@@ -128,6 +144,8 @@ if __name__ == '__main__':
     plt.show()
     modelos['Gaussian Mixtures']=GM+1
     plotmetrics(Yl,modelos)
+    # 6º Clasificación. Selección de Muestras.
+    elbow(Xl,Yl)
     # Dibujamos las imagenes
     ax=plt.subplot(1,2,1)
     ax.imshow(X[:,:,1]), ax.axis('off'), plt.title('Image')

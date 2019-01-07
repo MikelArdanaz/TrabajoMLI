@@ -9,4 +9,5 @@
 * `Birch` Más rápido que `Kmeans` pero resultado mucho peor. 
 * `Mixturas Gaussianas` ver Episodio IV Paquito  
 
-[Explicación Pros & Cons jerarquico VS Kmeans](https://www.quora.com/What-are-the-pros-and-cons-of-k-means-vs-hierarchical-clustering)
+[Explicación Pros & Cons jerarquico VS Kmeans](https://www.quora.com/What-are-the-pros-and-cons-of-k-means-vs-hierarchical-clustering)  
+[Determining the number of clusters in a data set](https://en.wikipedia.org/wiki/Determining_the_number_of_clusters_in_a_data_set)  
