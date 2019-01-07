@@ -77,9 +77,9 @@ def plotmetrics(Yl,modelos):
 def elbow(Xl,Yl):
     '''
     Implementación del método Elbow (https://en.wikipedia.org/wiki/Determining_the_number_of_clusters_in_a_data_set)
-    para conocer el número de clusters que debe tener cada dataset.
-    Lo usaremos posteriormente en la selección de muestras. El número de clusters se elige a ojo en función
-    de donde encontremos el codo. IMP: En algunos casos no esta bien definido el codo. (¡La vida real es asi de dura!)
+    para conocer el número de clusters que debe tener cada dataset.Lo usaremos posteriormente en la selección de muestras.
+    El número de clusters se elige a ojo en función de donde encontremos el codo y del tiempo necesario para el aprendizaje.
+    IMP: En algunos casos no esta bien definido el codo. (¡La vida real es asi de dura!)
     '''
     for clase in range(1,17):
         indexclasified=np.where(Yl ==clase)[0]# Indexes of class
