@@ -3,6 +3,7 @@
 import numpy as np
 import scipy.io.matlab as matlab
 import matplotlib.pyplot as plt
+from sklearn import mixture
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -23,10 +24,12 @@ def kmeans(imagen,tipo='',labeled=False):
         modelos.append(kmeans)
         predictions.append(kmeans.predict(imagen))# Prescindible (https://stackoverflow.com/questions/25012342/scikit-learns-k-means-what-does-the-predict-method-really-do)
         ax = plt.subplot(1, 3, i+1)
-        plt.suptitle('Kmeans')
         if labeled:
+            plt.suptitle('Kmeans etiquetado')
             Y_final_orig[Yl != 0, 0] = modelos[i].labels_ + 1
             predictions[i]=Y_final_orig
+        else:
+            plt.suptitle('Kmeans')
         ax.imshow(predictions[i].reshape((145, 145), order="F"))
         plt.title(tipo+str(modelos[i].n_clusters)+' clusters') # Dims(Y)
     plt.show()
@@ -34,6 +37,7 @@ def kmeans(imagen,tipo='',labeled=False):
 def PCApply(X):
     data=PCA(n_components=40).fit_transform(X)
     _, b,_ = np.linalg.svd(X.transpose().dot(X))# Demo mejor con 40
+    plt.title('Explicación variabilidad en base al número de variables')
     plt.plot(range(10, 75), b[10:75], 'bx-')
     plt.show()
     return data
@@ -79,6 +83,13 @@ if __name__ == '__main__':
     #4º Aprox: PCA
     data=PCApply(Xl_std)
     modelosPCA, predictionsPCA=kmeans(data[Yl!=0,:],'PCA + std ',labeled=True)
+    # 5º Aprox: Gaussian Mixtures
+    GM = mixture.GaussianMixture(n_components=16, random_state=42).fit_predict(data[Yl!=0,:])
+    Y_GM=np.zeros((Yl.shape[0], 1))
+    Y_GM[Yl != 0, 0] = GM + 1
+    plt.imshow(Y_GM.reshape((145, 145), order="F"))
+    plt.title('Gaussian Mixtures, std + PCA 16 clusters, etiquetados')
+    plt.show()
     # Dibujamos las imagenes
     ax=plt.subplot(1,2,1)
     ax.imshow(X[:,:,1]), ax.axis('off'), plt.title('Image')
