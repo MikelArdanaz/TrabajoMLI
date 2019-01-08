@@ -10,8 +10,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from yellowbrick.cluster import KElbowVisualizer
 
-# TODO testear jerarquico
-
 
 def kmeans(imagen,tipo='',labeled=False):
     '''
