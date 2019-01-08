@@ -102,6 +102,47 @@ def elbow(Xl,Yl):
         visualizer.poof()
 
 
+def seleccionPuntos(clasificacion,total=5000):
+    '''
+    :param clasificacion: Criterio usado para para la selección de elementos
+    :param total: Número de elementos a particionar
+    Implementación proporcional; Mismo número de elementos de cada clase. Rara vez tendremos 5000, lo habitual es tener alguno menos.
+    :return: npuntos -- puntos por clase/cluster
+    '''
+    npuntos=[]
+    for clase in np.unique(clasificacion):
+        npuntos.append(int(total * np.sum(clasificacion == clase) / clasificacion.shape[0]))#Resultados truncados (No podemos tener medio dato)
+    return npuntos
+
+
+def muestreo(Xl,Yl,Nclusters):
+    '''
+    Implementa la mixtura de gaussianos ya que es el clustering que mejores resultados nos ha dado.
+    Selecciona ptos. + cerca de las medias
+    :param Xl: Muestras etiquetadas
+    :param Yl: Etiquetas de clases
+    :param Nclusters: lista con nº clusters por clase (Obtenidos vía elbow)
+    :return: Índices de los puntos representantes
+    '''
+    # TODO gráfica clasificación
+    ptsxclase=seleccionPuntos(Yl[Yl>0])# Puntos para cada clase
+    Yl_final = np.zeros(Yl.shape[0])
+    for clase in np.unique(Yl[Yl>0]):
+        indexclasified=np.where(Yl ==clase)[0]
+        GM = mixture.GaussianMixture(n_components=Nclusters[clase - 1]).fit(Xl[indexclasified,:])
+        predictions=GM.predict(Xl[indexclasified,:])
+        ptsxcluster=seleccionPuntos(predictions,total=ptsxclase[clase-1])
+        Yl_Cluster=np.zeros(Yl.shape[0])
+        for i, centro in enumerate(GM.means_):
+            indexofcluster=indexclasified[predictions==i]# Index of samples belonging to cluster
+            Xl_Cluster = Xl[indexofcluster, :]# Cogemos Xl
+            norma = np.sqrt(np.sum((Xl_Cluster - centro) ** 2, axis=1))# Diferencia punto con centro
+            nearestindexes = norma.argsort()[:ptsxcluster[i]] #Nos quedamos con ptsxcluster elementos
+            Yl_Cluster[indexofcluster[nearestindexes]]=i+1
+        Yl_final[Yl_Cluster>0]=clase
+    return np.where(Yl_final > 0)[0]
+
+
 if __name__ == '__main__':
     plt.style.use('default')# Al importar yellowbrick, se cambia el esquema de colores a grayscale.
     # Lectura de la imagen de fichero de Matlab .mat
@@ -157,6 +198,8 @@ if __name__ == '__main__':
     plotmetrics(Yl,modelos)
     # 6º Clasificación. Selección de Muestras.
     elbow(Xl,Yl)
+    Nclusters=[1,4,4,4,3,2,4,3,11,6,1,2,1,4,1,1]
+    indexes=muestreo(Xl,Yl,Nclusters)
     # Dibujamos las imagenes
     ax=plt.subplot(1,2,1)
     ax.imshow(X[:,:,1]), ax.axis('off'), plt.title('Image')
