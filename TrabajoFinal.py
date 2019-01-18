@@ -1,11 +1,14 @@
 # Trabajo Machine Learning
 # @authors: Vicente Cifre, Mikel Ardanaz
 import numpy as np
+import re
 import scipy.io.matlab as matlab
 import matplotlib.pyplot as plt
 from sklearn import mixture
 from sklearn.cluster import KMeans
 from sklearn.metrics import v_measure_score, adjusted_rand_score, mutual_info_score
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from yellowbrick.cluster import KElbowVisualizer
@@ -20,7 +23,7 @@ def kmeans(imagen,tipo='',labeled=False):
     modelos=[]
     predictions=[]
     for i,nclusters in enumerate([5,10,17]):# Yl va de 0 a 16
-        kmeans = KMeans(n_clusters=nclusters, random_state=42,n_jobs=-1).fit(imagen)# njobs=1-> Parallel processing
+        kmeans = KMeans(n_clusters=nclusters, random_state=42,n_jobs=-1).fit(imagen)# njobs=-1-> Parallel processing
         modelos.append(kmeans)
         predictions.append(kmeans.predict(imagen))# Prescindible (https://stackoverflow.com/questions/25012342/scikit-learns-k-means-what-does-the-predict-method-really-do)
         ax = plt.subplot(1, 3, i+1)
@@ -94,7 +97,7 @@ def elbow(Xl,Yl):
     for clase in range(1,17):
         indexclasified=np.where(Yl ==clase)[0]# Indexes of class
         Xlclase=Xl[indexclasified,:]
-        model=KMeans()
+        model=KMeans(n_jobs=-1)
         visualizer = KElbowVisualizer(model, k=(1, 12),title=('Método Elbow para la clase ')+str(clase))
         visualizer.fit(Xlclase)
         visualizer.poof()
@@ -104,7 +107,7 @@ def seleccionPuntos(clasificacion,total=5000):
     '''
     :param clasificacion: Criterio usado para para la selección de elementos
     :param total: Número de elementos a particionar
-    Implementación proporcional; Mismo número de elementos de cada clase. Rara vez tendremos 5000, lo habitual es tener alguno menos.
+    Implementación proporcional respecto a la aparición de cada clase. Rara vez tendremos 5000, lo habitual es tener alguno menos.
     :return: npuntos -- puntos por clase/cluster
     '''
     npuntos=[]
@@ -116,7 +119,8 @@ def seleccionPuntos(clasificacion,total=5000):
 def muestreo(Xl,Yl,Nclusters):
     '''
     Implementa la mixtura de gaussianos ya que es el clustering que mejores resultados nos ha dado.
-    Selecciona ptos. + cerca de las medias
+    Selecciona ptos. + cerca de las medias. Podría no generalizar bien ya que no sería representativo,
+    pero después de tener que hacer un clustering no voy a elegir los puntos de forma aleatoria.
     :param Xl: Muestras etiquetadas
     :param Yl: Etiquetas de clases
     :param Nclusters: lista con nº clusters por clase (Obtenidos vía elbow)
@@ -141,6 +145,54 @@ def muestreo(Xl,Yl,Nclusters):
     return np.where(Yl_final > 0)[0]
 
 
+def clasifica(Clasificador,X_train, Y_train,X_test,Y_test,index_test,MatrizConfusion=False):
+    '''
+    Esta función realiza el proceso de fit y predict habitual
+    :param Clasificador: Clasificador a entrenar
+    :param X_train:
+    :param Y_train:
+    :param X_test:
+    :param Y_test:
+    :param MatrizConfusion:
+    :return:
+    '''
+    Clasificador.fit(X_train, Y_train)
+    pred=Clasificador.predict(X_test)
+    Yl_prediccion = np.zeros(Yl.shape[0])
+    Yl_prediccion[index_test] = pred
+    plt.imshow(np.reshape(Yl_prediccion, (145, 145), order="F")),
+    plt.axis('off'),
+    plt.title(re.compile('.*\(').findall(str(Clasificador))[0][:-1])
+    plt.show()
+    print('Puntos clasificados:', Y_test.shape[0])
+    print('Aciertos:', np.sum((Y_test - pred) == 0))
+    print('Fallos:', np.sum((Y_test - pred) != 0))
+    print('Proporción de aciertos:', np.mean((Y_test - pred) == 0))
+    precisionTest={}
+    precisionTest[re.compile('.*\(').findall(str(Clasificador))[0][:-1] + 'Test'] = np.mean((Y_test - pred) == 0)
+    return Clasificador,precisionTest
+
+
+def PredictOthers(Clasificador,Xl,Yl,otherindexes):
+    '''
+    Realiza la predicción con los indices no seleccionados y los muestra gráficamente
+    :param Clasificador:
+    :param Xl:
+    :param otherindexes:
+    :return:
+    '''
+    pred = Clasificador.predict(Xl[otherindexes,:])
+    Yl_prediccion = np.zeros(Yl.shape[0])
+    Yl_prediccion[otherindexes] = pred
+    plt.imshow(np.reshape(Yl_prediccion, (145, 145), order="F")),
+    plt.axis('off'),
+    # re.compile('.*\(').findall(str(Clasificador))[0][:-1] obtiene el nombre del modelo
+    plt.title(re.compile('.*\(').findall(str(Clasificador))[0][:-1])
+    plt.show()
+    precisionOtros={}
+    precisionOtros[re.compile('.*\(').findall(str(Clasificador))[0][:-1] + 'Otros'] = np.mean((Yl[otherindexes] - pred) == 0)
+    return precisionOtros
+
 if __name__ == '__main__':
     plt.style.use('default')# Al importar yellowbrick, se cambia el esquema de colores a grayscale.
     # Lectura de la imagen de fichero de Matlab .mat
@@ -163,7 +215,7 @@ if __name__ == '__main__':
     # Probamos ahora a hacer cluster solo de los que tienen etiqueta (al resto les mantendremos el valor de 0)
     Y_final_orig = np.zeros((Yl.shape[0], 1))
     Xl_SoloClasei = np.float64(Xl[Yl != 0, :])
-    modelos1 = KMeans(n_clusters=16, random_state=42).fit(Xl_SoloClasei)
+    modelos1 = KMeans(n_clusters=16, random_state=42,n_jobs=-1).fit(Xl_SoloClasei)
     modelos['Kmeans 16 label'] = modelos1.labels_ + 1
     Y_final_orig[Yl != 0, 0] = modelos1.labels_ + 1 # Kmeans empieza a etiquetar en 0
     plt.imshow(Y_final_orig.reshape((145, 145), order="F"))
@@ -175,7 +227,7 @@ if __name__ == '__main__':
     imagen = np.float64(Xl_std[:, (range(0, 220))])
     modelostd, predictionstd = kmeans(imagen,'std')
     Xl_stdclase = np.float64(Xl_std[Yl != 0, :])
-    modelos1 = KMeans(n_clusters=16, random_state=42).fit(Xl_stdclase)
+    modelos1 = KMeans(n_clusters=16, random_state=42,n_jobs=-1).fit(Xl_stdclase)
     modelos['Kmeans 16 std label']=modelos1.labels_ + 1
     Y_final_orig[Yl != 0, 0] = modelos1.labels_ + 1  # Kmeans empieza a etiquetar en 0
     plt.imshow(Y_final_orig.reshape((145, 145), order="F"))
@@ -198,8 +250,24 @@ if __name__ == '__main__':
     elbow(Xl,Yl)
     Nclusters=[1,4,4,4,3,2,4,3,11,6,1,2,1,4,1,1]
     indexes=muestreo(Xl,Yl,Nclusters)
+    Yl_reduced = Yl[indexes]
+    Xl_reduced = Xl[indexes, :]
+    otherindexes = np.setdiff1d(np.where(Yl>0), indexes)
+    # 7º Clasificación. Partición en 2 subconjuntos: Train y Test
+    X_train, X_test, Y_train, Y_test, index_train, index_test = train_test_split(Xl_reduced, Yl_reduced,
+                                                                                     indexes,
+                                                                                     test_size=.33, random_state=42)
+    # 8º Clasificación. LLamada a los clasificadores
+    testError=[]
+    otherError=[]
+    neighbors=2# Habíamos probado con entre 2 y 75 pero apenas hay mejoría
+    clf_entrenado,precisionTest = clasifica(KNeighborsClassifier(n_neighbors=neighbors,n_jobs=-1),X_train, Y_train,X_test,Y_test,index_test)
+    precisionOtros=PredictOthers(clf_entrenado,Xl,Yl,otherindexes)
+    testError.append(precisionTest['KNeighborsClassifierTest'])
+    otherError.append(precisionOtros['KNeighborsClassifierOtros'])
     # Dibujamos las imagenes
     ax=plt.subplot(1,2,1)
     ax.imshow(X[:,:,1]), ax.axis('off'), plt.title('Image')
     ax=plt.subplot(1,2,2)
     ax.imshow(Y), ax.axis('off'), plt.title('Ground Truth')
+    plt.show()
