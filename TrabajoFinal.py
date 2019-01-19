@@ -4,12 +4,12 @@ import numpy as np
 import re
 import scipy.io.matlab as matlab
 import matplotlib.pyplot as plt
-from sklearn import mixture
+from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import v_measure_score, adjusted_rand_score, mutual_info_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.naive_bayes import GaussianNB, BernoulliNB
 from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
 from sklearn.preprocessing import StandardScaler
@@ -118,9 +118,9 @@ def elbow(Xl, Yl):
 
 def seleccionPuntos(clasificacion, total=5000):
     '''
+    Implementación proporcional respecto a la aparición de cada clase. Rara vez tendremos 5000, lo habitual es tener alguno menos.
     :param clasificacion: Criterio usado para para la selección de elementos
     :param total: Número de elementos a particionar
-    Implementación proporcional respecto a la aparición de cada clase. Rara vez tendremos 5000, lo habitual es tener alguno menos.
     :return: npuntos -- puntos por clase/cluster
     '''
     npuntos = []
@@ -141,13 +141,12 @@ def muestreo(Xl, Yl, Nclusters):
     :param Nclusters: lista con nº clusters por clase (Obtenidos vía elbow)
     :return: Índices de los puntos representantes
     '''
-    # TODO gráfica clasificación
     ptsxclase = seleccionPuntos(Yl[Yl > 0])  # Puntos para cada clase
     Yl_final = np.zeros(Yl.shape[0])
     for clase in np.unique(Yl[Yl > 0]):
         indexclasified = np.where(Yl == clase)[0]
-        GM = mixture.GaussianMixture(n_components=Nclusters[
-                                     clase - 1]).fit(Xl[indexclasified, :])
+        GM = GaussianMixture(n_components=Nclusters[
+            clase - 1]).fit(Xl[indexclasified, :])
         predictions = GM.predict(Xl[indexclasified, :])
         ptsxcluster = seleccionPuntos(predictions, total=ptsxclase[clase - 1])
         Yl_Cluster = np.zeros(Yl.shape[0])
@@ -164,7 +163,7 @@ def muestreo(Xl, Yl, Nclusters):
     return np.where(Yl_final > 0)[0]
 
 
-def clasifica(Clasificador,name, X_train, Y_train, X_test, Y_test, index_test):
+def clasifica(Clasificador, name, X_train, Y_train, X_test, Y_test, index_test):
     '''
     Esta función realiza el proceso de fit y predict habitual
     :param Clasificador: Clasificador a entrenar
@@ -182,7 +181,7 @@ def clasifica(Clasificador,name, X_train, Y_train, X_test, Y_test, index_test):
     plt.axis('off'),
     plt.title(re.compile('.*\(').findall(str(Clasificador))[0][:-1])
     plt.show()
-    print('Clasificador: ',name)
+    print('Clasificador: ', name)
     print('Total Puntos:', Y_test.shape[0])
     print('Aciertos:', np.sum((Y_test - pred) == 0))
     print('Fallos:', np.sum((Y_test - pred) != 0))
@@ -211,6 +210,44 @@ def PredictOthers(Clasificador, Xl, Yl, otherindexes):
     precisionOtros = np.mean((Yl[otherindexes] - pred) == 0)
     print('Proporción de aciertos (precisión en Otros) :', precisionOtros)
     return precisionOtros
+
+
+def ranking(Xl_reduced, Yl_reduced):
+    '''
+    https://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_importances.html
+    :param Xl_reduced:
+    :param Yl_reduced:
+    :return:
+    '''
+    parameters = {'criterion': ['gini', 'entropy'],
+                  'max_depth': [4, 10, 20],
+                  'min_samples_split': [2, 4, 8],
+                  'max_depth': [3, 10, 20]}
+    clf = GridSearchCV(ExtraTreesClassifier(class_weight='balanced'), parameters, verbose=3,
+                       cv=5, n_jobs=-1)
+    clf.fit(Xl_reduced, Yl_reduced)
+    clf = clf.best_estimator_
+    importances = clf.feature_importances_
+    std = np.std([tree.feature_importances_ for tree in clf.estimators_],
+                 axis=0)
+    indices = np.argsort(importances)[::-1]
+    # Print the feature ranking
+    print("Feature ranking:")
+    print(importances[indices])
+    # Plot the feature importances of the forest
+    plt.figure()
+    plt.title("Feature importances")
+    plt.bar(range(Xl_reduced.shape[1]), importances[indices],
+            color="r", yerr=std[indices], align="center")
+    plt.xticks(range(Xl_reduced.shape[1]), indices)
+    plt.xlim([-1, Xl_reduced.shape[1]])
+    plt.show()
+    imp_threshold = 0.0085
+    idx_final = np.where(importances > imp_threshold)[0]
+    final_X_train = X_train[:, idx_final]
+    final_X_test = X_test[:, idx_final]
+    return final_X_train, final_X_test
+
 
 if __name__ == '__main__':
     # Al importar yellowbrick, se cambia el esquema de colores a grayscale.
@@ -265,7 +302,7 @@ if __name__ == '__main__':
         data[Yl != 0, :], 'PCA + std ', labeled=True)
     modelos['PCA'] = modelosPCA[2].labels_
     # 5º Aprox: Gaussian Mixtures
-    GM = mixture.GaussianMixture(
+    GM = GaussianMixture(
         n_components=16, random_state=42).fit_predict(data[Yl != 0, :])
     Y_GM = np.zeros((Yl.shape[0], 1))
     Y_GM[Yl != 0, 0] = GM + 1
@@ -306,11 +343,12 @@ if __name__ == '__main__':
         AdaBoostClassifier(n_estimators=100)]
     for name, clf in zip(names, classifiers):
         clf_entrenado, precisionTest = clasifica(
-            clf,name, X_train, Y_train, X_test, Y_test, index_test)
+            clf, name, X_train, Y_train, X_test, Y_test, index_test)
         precisionOtros = PredictOthers(clf_entrenado, Xl, Yl, otherindexes)
         testError[name] = precisionTest
         otherError[name] = precisionOtros
-
+    # 9º Ranking de características;
+    final_X_train, final_X_test = ranking(Xl_reduced, Yl_reduced)
     # Dibujamos las imagenes
     ax = plt.subplot(1, 2, 1)
     ax.imshow(X[:, :, 1]), ax.axis('off'), plt.title('Image')
