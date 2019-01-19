@@ -52,7 +52,7 @@ def pcapply(X):
     '''
     data = PCA(n_components=40).fit_transform(X)
     _, b, _ = np.linalg.svd(X.transpose().dot(X))  # Demo mejor con 40
-    plt.title('Explicación variabilidad en base al número de variables')
+    plt.title('Perdida Explicación variabilidad en base al número de variables')
     plt.plot(range(10, 75), b[10:75], 'bx-')
     plt.show()
     return data
@@ -280,21 +280,22 @@ if __name__ == '__main__':
     # 8º Clasificación. LLamada a los clasificadores
     testError = {}
     otherError = {}
+    # PARAMETERS
     # Habíamos probado con entre 2 y 75 pero apenas hay mejoría. Además al
     # considerar más vecinos. Aumenta el overfitting y el tiempo.
     neighbors = 2
-    clf_entrenado, precisionTest = clasifica(KNeighborsClassifier(
-        n_neighbors=neighbors, n_jobs=-1), X_train, Y_train, X_test, Y_test, index_test)
-    precisionOtros = PredictOthers(clf_entrenado, Xl, Yl, otherindexes)
-    testError['KNeighborsClassifier'] = precisionTest
-    otherError['KNeighborsClassifier'] = precisionOtros
-    # DecisionTreeClassifier
     depth = 10
-    clf_entrenado, precisionTest = clasifica(DecisionTreeClassifier(max_depth=depth), X_train, Y_train, X_test, Y_test,
-                                             index_test)
-    precisionOtros = PredictOthers(clf_entrenado, Xl, Yl, otherindexes)
-    testError['DecisionTreeClassifier'] = precisionTest
-    otherError['DecisionTreeClassifier'] = precisionOtros
+    # https://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html
+    names = ['KNeighborsClassifier', 'DecisionTreeClassifier']
+    classifiers = [KNeighborsClassifier(
+        n_neighbors=neighbors, n_jobs=-1), DecisionTreeClassifier(max_depth=depth)]
+    for name, clf in zip(names, classifiers):
+        clf_entrenado, precisionTest = clasifica(
+            clf, X_train, Y_train, X_test, Y_test, index_test)
+        precisionOtros = PredictOthers(clf_entrenado, Xl, Yl, otherindexes)
+        testError[name] = precisionTest
+        otherError[name] = precisionOtros
+
     # Dibujamos las imagenes
     ax = plt.subplot(1, 2, 1)
     ax.imshow(X[:, :, 1]), ax.axis('off'), plt.title('Image')
