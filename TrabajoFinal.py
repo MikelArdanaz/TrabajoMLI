@@ -6,11 +6,15 @@ import scipy.io.matlab as matlab
 import matplotlib.pyplot as plt
 from sklearn import mixture
 from sklearn.cluster import KMeans
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import v_measure_score, adjusted_rand_score, mutual_info_score
 from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB, BernoulliNB
+from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.svm import LinearSVC, SVC
 from sklearn.tree import DecisionTreeClassifier
 from yellowbrick.cluster import KElbowVisualizer
 
@@ -23,7 +27,11 @@ def kmeans(imagen, tipo='', labeled=False):
     '''
     modelos = []
     predictions = []
-    for i, nclusters in enumerate([5, 10, 17]):  # Yl va de 0 a 16
+    if labeled:
+        clusters = [5, 10, 16]
+    else:
+        clusters = [5, 10, 17]
+    for i, nclusters in enumerate(clusters):  # Yl va de 0 a 16
         kmeans = KMeans(n_clusters=nclusters, random_state=42,
                         n_jobs=-1).fit(imagen)  # njobs=-1-> Parallel processing
         modelos.append(kmeans)
@@ -156,7 +164,7 @@ def muestreo(Xl, Yl, Nclusters):
     return np.where(Yl_final > 0)[0]
 
 
-def clasifica(Clasificador, X_train, Y_train, X_test, Y_test, index_test, MatrizConfusion=False):
+def clasifica(Clasificador,name, X_train, Y_train, X_test, Y_test, index_test, MatrizConfusion=False):
     '''
     Esta función realiza el proceso de fit y predict habitual
     :param Clasificador: Clasificador a entrenar
@@ -175,6 +183,7 @@ def clasifica(Clasificador, X_train, Y_train, X_test, Y_test, index_test, Matriz
     plt.axis('off'),
     plt.title(re.compile('.*\(').findall(str(Clasificador))[0][:-1])
     plt.show()
+    print('Clasificador: ',name)
     print('Puntos clasificados:', Y_test.shape[0])
     print('Aciertos:', np.sum((Y_test - pred) == 0))
     print('Fallos:', np.sum((Y_test - pred) != 0))
@@ -277,7 +286,7 @@ if __name__ == '__main__':
     X_train, X_test, Y_train, Y_test, index_train, index_test = train_test_split(Xl_reduced, Yl_reduced,
                                                                                  indexes,
                                                                                  test_size=.33, random_state=42)
-    # 8º Clasificación. LLamada a los clasificadores
+    # 8º Clasificación. Llamada a los clasificadores
     testError = {}
     otherError = {}
     # PARAMETERS
@@ -286,12 +295,19 @@ if __name__ == '__main__':
     neighbors = 2
     depth = 10
     # https://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html
-    names = ['KNeighborsClassifier', 'DecisionTreeClassifier']
+    names = ['KNeighborsClassifier', 'DecisionTreeClassifier', 'NearestCentroid', 'LogisticRegression',
+             'RandomForestClassifier', 'LinearSVC', 'SVC', 'GaussianNB', 'BernoulliNB', 'AdaBoostClassifier']
     classifiers = [KNeighborsClassifier(
-        n_neighbors=neighbors, n_jobs=-1), DecisionTreeClassifier(max_depth=depth)]
+        n_neighbors=neighbors, n_jobs=-1), DecisionTreeClassifier(max_depth=depth), NearestCentroid(),
+        LogisticRegression(class_weight='balanced', n_jobs=-1),
+        RandomForestClassifier(
+            max_depth=12, n_estimators=10, n_jobs=-1), LinearSVC(),
+        SVC(kernel="linear", C=0.025),
+        GaussianNB(), BernoulliNB(),
+        AdaBoostClassifier(n_estimators=100)]
     for name, clf in zip(names, classifiers):
         clf_entrenado, precisionTest = clasifica(
-            clf, X_train, Y_train, X_test, Y_test, index_test)
+            clf,name, X_train, Y_train, X_test, Y_test, index_test)
         precisionOtros = PredictOthers(clf_entrenado, Xl, Yl, otherindexes)
         testError[name] = precisionTest
         otherError[name] = precisionOtros
