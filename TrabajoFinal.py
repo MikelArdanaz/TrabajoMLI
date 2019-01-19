@@ -164,7 +164,7 @@ def muestreo(Xl, Yl, Nclusters):
     return np.where(Yl_final > 0)[0]
 
 
-def clasifica(Clasificador,name, X_train, Y_train, X_test, Y_test, index_test, MatrizConfusion=False):
+def clasifica(Clasificador,name, X_train, Y_train, X_test, Y_test, index_test):
     '''
     Esta función realiza el proceso de fit y predict habitual
     :param Clasificador: Clasificador a entrenar
@@ -172,7 +172,6 @@ def clasifica(Clasificador,name, X_train, Y_train, X_test, Y_test, index_test, M
     :param Y_train:
     :param X_test:
     :param Y_test:
-    :param MatrizConfusion:
     :return:
     '''
     Clasificador.fit(X_train, Y_train)
@@ -184,11 +183,11 @@ def clasifica(Clasificador,name, X_train, Y_train, X_test, Y_test, index_test, M
     plt.title(re.compile('.*\(').findall(str(Clasificador))[0][:-1])
     plt.show()
     print('Clasificador: ',name)
-    print('Puntos clasificados:', Y_test.shape[0])
+    print('Total Puntos:', Y_test.shape[0])
     print('Aciertos:', np.sum((Y_test - pred) == 0))
     print('Fallos:', np.sum((Y_test - pred) != 0))
     precisionTest = np.mean((Y_test - pred) == 0)
-    print('Proporción de aciertos:', precisionTest)
+    print('Proporción de aciertos (precisión en Test):', precisionTest)
     return Clasificador, precisionTest
 
 
@@ -210,7 +209,7 @@ def PredictOthers(Clasificador, Xl, Yl, otherindexes):
     plt.title(re.compile('.*\(').findall(str(Clasificador))[0][:-1])
     plt.show()
     precisionOtros = np.mean((Yl[otherindexes] - pred) == 0)
-    print('Proporción de aciertos (otros) :', precisionOtros)
+    print('Proporción de aciertos (precisión en Otros) :', precisionOtros)
     return precisionOtros
 
 if __name__ == '__main__':
