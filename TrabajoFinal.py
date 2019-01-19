@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.tree import DecisionTreeClassifier
 from yellowbrick.cluster import KElbowVisualizer
 
 
@@ -177,10 +178,8 @@ def clasifica(Clasificador, X_train, Y_train, X_test, Y_test, index_test, Matriz
     print('Puntos clasificados:', Y_test.shape[0])
     print('Aciertos:', np.sum((Y_test - pred) == 0))
     print('Fallos:', np.sum((Y_test - pred) != 0))
-    print('Proporción de aciertos:', np.mean((Y_test - pred) == 0))
-    precisionTest = {}
-    precisionTest[re.compile('.*\(').findall(str(Clasificador))
-                  [0][:-1] + 'Test'] = np.mean((Y_test - pred) == 0)
+    precisionTest = np.mean((Y_test - pred) == 0)
+    print('Proporción de aciertos:', precisionTest)
     return Clasificador, precisionTest
 
 
@@ -201,9 +200,8 @@ def PredictOthers(Clasificador, Xl, Yl, otherindexes):
     # del modelo
     plt.title(re.compile('.*\(').findall(str(Clasificador))[0][:-1])
     plt.show()
-    precisionOtros = {}
-    precisionOtros[re.compile('.*\(').findall(str(Clasificador))
-                   [0][:-1] + 'Otros'] = np.mean((Yl[otherindexes] - pred) == 0)
+    precisionOtros = np.mean((Yl[otherindexes] - pred) == 0)
+    print('Proporción de aciertos (otros) :', precisionOtros)
     return precisionOtros
 
 if __name__ == '__main__':
@@ -280,14 +278,23 @@ if __name__ == '__main__':
                                                                                  indexes,
                                                                                  test_size=.33, random_state=42)
     # 8º Clasificación. LLamada a los clasificadores
-    testError = []
-    otherError = []
-    neighbors = 2  # Habíamos probado con entre 2 y 75 pero apenas hay mejoría
+    testError = {}
+    otherError = {}
+    # Habíamos probado con entre 2 y 75 pero apenas hay mejoría. Además al
+    # considerar más vecinos. Aumenta el overfitting y el tiempo.
+    neighbors = 2
     clf_entrenado, precisionTest = clasifica(KNeighborsClassifier(
         n_neighbors=neighbors, n_jobs=-1), X_train, Y_train, X_test, Y_test, index_test)
     precisionOtros = PredictOthers(clf_entrenado, Xl, Yl, otherindexes)
-    testError.append(precisionTest['KNeighborsClassifierTest'])
-    otherError.append(precisionOtros['KNeighborsClassifierOtros'])
+    testError['KNeighborsClassifier'] = precisionTest
+    otherError['KNeighborsClassifier'] = precisionOtros
+    # DecisionTreeClassifier
+    depth = 10
+    clf_entrenado, precisionTest = clasifica(DecisionTreeClassifier(max_depth=depth), X_train, Y_train, X_test, Y_test,
+                                             index_test)
+    precisionOtros = PredictOthers(clf_entrenado, Xl, Yl, otherindexes)
+    testError['DecisionTreeClassifier'] = precisionTest
+    otherError['DecisionTreeClassifier'] = precisionOtros
     # Dibujamos las imagenes
     ax = plt.subplot(1, 2, 1)
     ax.imshow(X[:, :, 1]), ax.axis('off'), plt.title('Image')
