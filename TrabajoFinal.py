@@ -223,7 +223,7 @@ def ranking(Xl_reduced, Yl_reduced):
                   'max_depth': [4, 10, 20],
                   'min_samples_split': [2, 4, 8],
                   'max_depth': [3, 10, 20]}
-    clf = GridSearchCV(ExtraTreesClassifier(class_weight='balanced'), parameters, verbose=3,
+    clf = GridSearchCV(ExtraTreesClassifier(class_weight='balanced', n_estimators=10), parameters, verbose=3,
                        cv=5, n_jobs=-1)
     clf.fit(Xl_reduced, Yl_reduced)
     clf = clf.best_estimator_
