@@ -9,7 +9,7 @@ from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import v_measure_score, adjusted_rand_score, mutual_info_score
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 from sklearn.naive_bayes import GaussianNB, BernoulliNB
 from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
 from sklearn.preprocessing import StandardScaler
@@ -349,6 +349,43 @@ if __name__ == '__main__':
         otherError[name] = precisionOtros
     # 9º Ranking de características;
     final_X_train, final_X_test = ranking(Xl_reduced, Yl_reduced)
+    # 10º Ensembles
+    # https://scikit-learn.org/stable/modules/ensemble.html
+    ensemble_models = [DecisionTreeClassifier(),
+                       LinearSVC(),
+                       GaussianNB(),
+                       LogisticRegression(solver='lbfgs', multi_class='auto'),
+                       SVC(kernel="linear", C=0.025)]
+    n_folds = len(ensemble_models)
+    kf = KFold(n_folds, shuffle=True)
+    X_lv2 = np.zeros((final_X_train.shape[0], n_folds))
+    y_lv2 = np.zeros(Y_train.shape)
+    for itrain, itest in kf.split(final_X_train):
+        y_lv2[itest] = Y_train[itest]
+        # Train
+        for n in range(n_folds):
+            ensemble_models[n].fit(final_X_train[itrain, :], Y_train[itrain])
+            X_lv2[itest, n] = ensemble_models[
+                n].predict(final_X_train[itest, :])
+    # Nivel 2
+    Clas_lv2_m2 = SVC(kernel="linear")
+    Clas_lv2_m2.fit(X_lv2, y_lv2)
+    # Train
+    for n in range(n_folds):
+        ensemble_models[n].fit(final_X_train, Y_train)
+    # Predicción
+    Ypred_test = np.zeros((Y_test.shape[0], n_folds))
+    Ypred_excl = np.zeros((final_X_train.shape[0], n_folds))
+    for n in range(n_folds):
+        Ypred_test[:, n] = ensemble_models[n].predict(final_X_test)
+        Ypred_excl[:, n] = ensemble_models[n].predict(final_X_train)
+    yc2 = Clas_lv2_m2.predict(Ypred_excl)
+    Yl_prediccion = np.zeros(Yl.shape[0])
+    Yl_prediccion[index_train] = yc2
+    plt.imshow(np.reshape(Yl_prediccion, (145, 145), order="F")),
+    plt.axis('off'),
+    plt.title('Predicción del segundo modelo ensemble')
+    plt.show()
     # Dibujamos las imagenes
     ax = plt.subplot(1, 2, 1)
     ax.imshow(X[:, :, 1]), ax.axis('off'), plt.title('Image')
