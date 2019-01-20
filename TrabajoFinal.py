@@ -400,6 +400,15 @@ if __name__ == '__main__':
     # 10º Ensembles
     # https://scikit-learn.org/stable/modules/ensemble.html
     ensemble(final_X_test, final_X_train, Y_train, Yl, index_train)
+    # Accuracy
+    plt.subplot(221)
+    plt.bar(range(len(testError)), testError.values(),
+            align='center')
+    plt.title('Precisión Test')
+    plt.subplot(222)
+    plt.bar(range(len(otherError)), otherError.values(), align='center')
+    plt.title('Precisión otros')
+    plt.show()
     # Dibujamos las imagenes
     ax = plt.subplot(1, 2, 1)
     ax.imshow(X[:, :, 1]), ax.axis('off'), plt.title('Image')
