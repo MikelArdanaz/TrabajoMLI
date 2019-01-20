@@ -379,6 +379,11 @@ if __name__ == '__main__':
     neighbors = 2
     depth = 10
     # https://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html
+    # LinearSVC is Similar to SVC with parameter kernel=’linear’, but
+    # implemented in terms of liblinear rather than libsvm, so it has more
+    # flexibility in the choice of penalties and loss functions and should
+    # scale better to large numbers of samples. ->
+    # https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
     names = ['KNeighborsClassifier', 'DecisionTreeClassifier', 'NearestCentroid', 'LogisticRegression',
              'RandomForestClassifier', 'LinearSVC', 'SVC', 'GaussianNB', 'BernoulliNB', 'AdaBoostClassifier']
     classifiers = [KNeighborsClassifier(
