@@ -20,11 +20,11 @@ from yellowbrick.cluster import KElbowVisualizer
 
 
 def kmeans(imagen, tipo='', labeled=False):
-    '''
+    """
     Realiza un clustering utilizando el algoritmo KMeans implementado en scikit-learn con 5,10 y 17 clusters.
     Posteriormente realiza una gráfica con los resultados.
     :return: * modelos, predictions: El modelo ya entrenado y el resultado de la prediccion
-    '''
+    """
     modelos = []
     predictions = []
     if labeled:
@@ -52,12 +52,12 @@ def kmeans(imagen, tipo='', labeled=False):
 
 
 def pcapply(X):
-    '''
+    """
     Realiza un PCA y muestra en una gráfica la explicación de la variabilidad respecto al nº de vars. La hemos usado
     para elegir el número de variables que queriamos conservar.
     :param X:Dataset
     :return: data -  Conjunto de datos reducido
-    '''
+    """
     data = PCA(n_components=40).fit_transform(X)
     _, b, _ = np.linalg.svd(X.transpose().dot(X))  # Demo mejor con 40
     plt.title('Perdida Explicación variabilidad en base al número de variables')
@@ -67,12 +67,12 @@ def pcapply(X):
 
 
 def plotmetrics(Yl, modelos):
-    '''
+    """
     Muestra en una gráfica algunas de los medidas de bondad estudiadas
     :param Yl: Etiquetas de clases
     :param modelos: Diccionario con NombreModelo y clases asignadas
     :return:
-    '''
+    """
     mutualinfo = {}
     vmeasure = {}
     rand = {}
@@ -100,12 +100,12 @@ def plotmetrics(Yl, modelos):
 
 
 def elbow(Xl, Yl):
-    '''
+    """
     Implementación del método Elbow (https://en.wikipedia.org/wiki/Determining_the_number_of_clusters_in_a_data_set)
     para conocer el número de clusters que debe tener cada dataset.Lo usaremos posteriormente en la selección de muestras.
     El número de clusters se elige a ojo en función de donde encontremos el codo y del tiempo necesario para el aprendizaje.
     IMP: En algunos casos no esta bien definido el codo. (¡La vida real es asi de dura!)
-    '''
+    """
     for clase in range(1, 17):
         indexclasified = np.where(Yl == clase)[0]  # Indexes of class
         Xlclase = Xl[indexclasified, :]
@@ -117,12 +117,12 @@ def elbow(Xl, Yl):
 
 
 def seleccionPuntos(clasificacion, total=5000):
-    '''
+    """
     Implementación proporcional respecto a la aparición de cada clase. Rara vez tendremos 5000, lo habitual es tener alguno menos.
     :param clasificacion: Criterio usado para para la selección de elementos
     :param total: Número de elementos a particionar
     :return: npuntos -- puntos por clase/cluster
-    '''
+    """
     npuntos = []
     for clase in np.unique(clasificacion):
         # Resultados truncados (No podemos tener medio dato)
@@ -132,7 +132,7 @@ def seleccionPuntos(clasificacion, total=5000):
 
 
 def muestreo(Xl, Yl, Nclusters):
-    '''
+    """
     Implementa la mixtura de gaussianos ya que es el clustering que mejores resultados nos ha dado.
     Selecciona ptos. + cerca de las medias. Podría no generalizar bien ya que no sería representativo,
     pero después de tener que hacer un clustering no voy a elegir los puntos de forma aleatoria.
@@ -140,7 +140,7 @@ def muestreo(Xl, Yl, Nclusters):
     :param Yl: Etiquetas de clases
     :param Nclusters: lista con nº clusters por clase (Obtenidos vía elbow)
     :return: Índices de los puntos representantes
-    '''
+    """
     ptsxclase = seleccionPuntos(Yl[Yl > 0])  # Puntos para cada clase
     Yl_final = np.zeros(Yl.shape[0])
     for clase in np.unique(Yl[Yl > 0]):
@@ -164,15 +164,17 @@ def muestreo(Xl, Yl, Nclusters):
 
 
 def clasifica(Clasificador, name, X_train, Y_train, X_test, Y_test, index_test):
-    '''
+    """
     Esta función realiza el proceso de fit y predict habitual
+    :param index_test:
+    :param name:
     :param Clasificador: Clasificador a entrenar
     :param X_train:
     :param Y_train:
     :param X_test:
     :param Y_test:
     :return:
-    '''
+    """
     Clasificador.fit(X_train, Y_train)
     pred = Clasificador.predict(X_test)
     Yl_prediccion = np.zeros(Yl.shape[0])
@@ -191,13 +193,14 @@ def clasifica(Clasificador, name, X_train, Y_train, X_test, Y_test, index_test):
 
 
 def PredictOthers(Clasificador, Xl, Yl, otherindexes):
-    '''
+    """
     Realiza la predicción con los indices no seleccionados y los muestra gráficamente
+    :param Yl:
     :param Clasificador:
     :param Xl:
     :param otherindexes:
     :return:
-    '''
+    """
     pred = Clasificador.predict(Xl[otherindexes, :])
     Yl_prediccion = np.zeros(Yl.shape[0])
     Yl_prediccion[otherindexes] = pred
@@ -213,16 +216,16 @@ def PredictOthers(Clasificador, Xl, Yl, otherindexes):
 
 
 def ranking(Xl_reduced, Yl_reduced):
-    '''
+    """
     https://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_importances.html
     :param Xl_reduced:
     :param Yl_reduced:
     :return:
-    '''
+    """
     parameters = {'criterion': ['gini', 'entropy'],
                   'max_depth': [4, 10, 20],
                   'min_samples_split': [2, 4, 8],
-                  'max_depth': [3, 10, 20]}
+                  }
     clf = GridSearchCV(ExtraTreesClassifier(class_weight='balanced', n_estimators=10), parameters, verbose=3,
                        cv=5, n_jobs=-1)
     clf.fit(Xl_reduced, Yl_reduced)
@@ -247,6 +250,54 @@ def ranking(Xl_reduced, Yl_reduced):
     final_X_train = X_train[:, idx_final]
     final_X_test = X_test[:, idx_final]
     return final_X_train, final_X_test
+
+
+def ensemble(final_X_test, final_X_train, Y_train, Yl, index_train):
+    """
+    Realiza un ensemble de 2 niveles utilizando los clasificadores que mejores resultados nos han dado.
+    Posteriormente plotea los resultados.
+    :param final_X_test:
+    :param final_X_train:
+    :param Y_train:
+    :param Yl:
+    :param index_train:
+    :return:
+    """
+    ensemble_models = [DecisionTreeClassifier(),
+                       LinearSVC(),
+                       GaussianNB(),
+                       LogisticRegression(solver='lbfgs', multi_class='auto'),
+                       SVC(kernel="linear", C=0.025)]
+    n_folds = len(ensemble_models)
+    kf = KFold(n_folds, shuffle=True)
+    X_lv2 = np.zeros((final_X_train.shape[0], n_folds))
+    y_lv2 = np.zeros(Y_train.shape)
+    for itrain, itest in kf.split(final_X_train):
+        y_lv2[itest] = Y_train[itest]
+        # Train
+        for n in range(n_folds):
+            ensemble_models[n].fit(final_X_train[itrain, :], Y_train[itrain])
+            X_lv2[itest, n] = ensemble_models[
+                n].predict(final_X_train[itest, :])
+    # Nivel 2
+    Clas_lv2_m2 = SVC(kernel="linear")
+    Clas_lv2_m2.fit(X_lv2, y_lv2)
+    # Train
+    for n in range(n_folds):
+        ensemble_models[n].fit(final_X_train, Y_train)
+    # Predicción
+    Ypred_test = np.zeros((Y_test.shape[0], n_folds))
+    Ypred_excl = np.zeros((final_X_train.shape[0], n_folds))
+    for n in range(n_folds):
+        Ypred_test[:, n] = ensemble_models[n].predict(final_X_test)
+        Ypred_excl[:, n] = ensemble_models[n].predict(final_X_train)
+    yc2 = Clas_lv2_m2.predict(Ypred_excl)
+    Yl_prediccion = np.zeros(Yl.shape[0])
+    Yl_prediccion[index_train] = yc2
+    plt.imshow(np.reshape(Yl_prediccion, (145, 145), order="F")),
+    plt.axis('off'),
+    plt.title('Ensemble')
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -351,41 +402,7 @@ if __name__ == '__main__':
     final_X_train, final_X_test = ranking(Xl_reduced, Yl_reduced)
     # 10º Ensembles
     # https://scikit-learn.org/stable/modules/ensemble.html
-    ensemble_models = [DecisionTreeClassifier(),
-                       LinearSVC(),
-                       GaussianNB(),
-                       LogisticRegression(solver='lbfgs', multi_class='auto'),
-                       SVC(kernel="linear", C=0.025)]
-    n_folds = len(ensemble_models)
-    kf = KFold(n_folds, shuffle=True)
-    X_lv2 = np.zeros((final_X_train.shape[0], n_folds))
-    y_lv2 = np.zeros(Y_train.shape)
-    for itrain, itest in kf.split(final_X_train):
-        y_lv2[itest] = Y_train[itest]
-        # Train
-        for n in range(n_folds):
-            ensemble_models[n].fit(final_X_train[itrain, :], Y_train[itrain])
-            X_lv2[itest, n] = ensemble_models[
-                n].predict(final_X_train[itest, :])
-    # Nivel 2
-    Clas_lv2_m2 = SVC(kernel="linear")
-    Clas_lv2_m2.fit(X_lv2, y_lv2)
-    # Train
-    for n in range(n_folds):
-        ensemble_models[n].fit(final_X_train, Y_train)
-    # Predicción
-    Ypred_test = np.zeros((Y_test.shape[0], n_folds))
-    Ypred_excl = np.zeros((final_X_train.shape[0], n_folds))
-    for n in range(n_folds):
-        Ypred_test[:, n] = ensemble_models[n].predict(final_X_test)
-        Ypred_excl[:, n] = ensemble_models[n].predict(final_X_train)
-    yc2 = Clas_lv2_m2.predict(Ypred_excl)
-    Yl_prediccion = np.zeros(Yl.shape[0])
-    Yl_prediccion[index_train] = yc2
-    plt.imshow(np.reshape(Yl_prediccion, (145, 145), order="F")),
-    plt.axis('off'),
-    plt.title('Predicción del segundo modelo ensemble')
-    plt.show()
+    ensemble(final_X_test, final_X_train, Y_train, Yl, index_train)
     # Dibujamos las imagenes
     ax = plt.subplot(1, 2, 1)
     ax.imshow(X[:, :, 1]), ax.axis('off'), plt.title('Image')
