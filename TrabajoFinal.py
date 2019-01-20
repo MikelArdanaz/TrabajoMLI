@@ -181,7 +181,6 @@ def clasifica(Clasificador, name, X_train, Y_train, X_test, Y_test, index_test):
     plt.title(re.compile('.*\(').findall(str(Clasificador))[0][:-1])
     plt.show()
     print('Clasificador: ', name)
-    print('Total Puntos:', Y_test.shape[0])
     print('Aciertos:', np.sum((Y_test - pred) == 0))
     print('Fallos:', np.sum((Y_test - pred) != 0))
     precisionTest = np.mean((Y_test - pred) == 0)
@@ -394,6 +393,7 @@ if __name__ == '__main__':
         SVC(kernel="linear", C=0.025),
         GaussianNB(), BernoulliNB(),
         AdaBoostClassifier(n_estimators=100)]
+    print('Total Puntos:', Y_test.shape[0])
     for name, clf in zip(names, classifiers):
         clf_entrenado, precisionTest = clasifica(
             clf, name, X_train, Y_train, X_test, Y_test, index_test)
