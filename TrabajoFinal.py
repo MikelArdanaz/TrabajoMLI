@@ -84,19 +84,16 @@ def plotmetrics(Yl, modelos):
     vmeasure['Ground Truth'] = v_measure_score(Yl[Yl != 0], Yl[Yl != 0])
     rand['Ground Truth'] = adjusted_rand_score(Yl[Yl != 0], Yl[Yl != 0])
     plt.subplot(221)
-    plt.bar(range(len(mutualinfo)), mutualinfo.values(), align='center')
+    plt.bar(range(len(mutualinfo)), mutualinfo.values(),
+            align='center')  # (Nombres en mutualinfo.keys)
     plt.title('Información Mutua')
-    plt.xticks(range(len(mutualinfo)), mutualinfo.keys())
     plt.subplot(222)
     plt.bar(range(len(vmeasure)), vmeasure.values(), align='center')
     plt.title('V Measure')
-    plt.xticks(range(len(vmeasure)), vmeasure.keys())
     plt.subplot(223)
     plt.bar(range(len(rand)), rand.values(), align='center')
     plt.title('Rand')
-    plt.xticks(range(len(rand)), rand.keys())
     plt.show()
-    # TODO no se ve bien a que corresponde cada barra
 
 
 def elbow(Xl, Yl):
